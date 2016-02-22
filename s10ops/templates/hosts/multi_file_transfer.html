@@ -1,0 +1,95 @@
+{% extends 'hosts/dashboard.html' %}
+{% block head-css %}
+<link href="/static/plugins/bootstrap-fileinput/css/fileinput.min.css" rel="stylesheet"><!--放置文件的引用css -->
+
+{% endblock %}
+{% block content-panel %}
+
+{% include 'hosts/host_list_component.html' %}
+
+
+<div class="col-md-9">
+    <div class="panel panel-default panel-right">
+        <div class="panel-body">
+
+            <!--这里重写  拷贝老师代码-->
+
+            <select  id="task_type" class="selectpicker">
+                <option value="file_send">分发文件到客户端</option>
+                <option value="file_get">从客户端下载文件</option>
+            </select>
+
+            <input id="file_upload" name="filename" type="file" multiple class="file-loading"> <!-- 写一段js 将其转换成可移动的文本框效果-->
+
+
+            <div class="form-group">
+                <label for="exampleInputName2">远程文件路径</label>
+                <input type="text" placeholder="必须输入绝对路径，不要包含文件名" class="form-control" name="remote_file_path" id="remote_file_path" >
+            </div>
+            <!--以上重写  拷贝老师代码-->
+            <button type="button" class="btn btn-success pull-right" onclick="SubmitTask('multi_file_transfer')">执行任务</button>
+
+            <div id="err-msgs"></div> <!--定义错误显示区域-->
+
+            <hr/>
+            <!--命令输出地方-->
+            <div id="result-box">
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block bottom-js %}
+<!--放置文件的引用js部分   还有个css 在当前页上部分中-->
+<script src="/static/plugins/bootstrap-fileinput/js/fileinput.js"></script>
+<script src="/static/plugins/bootstrap-fileinput/js/plugins/canvas-to-blob.js"></script>
+<script src="/static/plugins/bootstrap-fileinput/js/fileinput_locale_zh.js"></script>
+<!--放置文件的引用js部分-->
+{% include 'hosts/multi_task_js_component.html' %}
+
+
+<!-- 如下一段js 将其转换成可移动的文本框效果-->
+<script type="text/javascript">
+    $(document).ready(function(){
+
+        upload_files = [];  //上传文件的全局变量。存放位置，在view的方法中返回的、
+
+        $("#file_upload").fileinput({
+            uploadUrl: "{% url 'file_upload' %}", // server upload action
+            //uploadUrl: "/api/multi", // server upload action
+            uploadAsync: true, //异步支持 可以上传多个文件
+            language:'zh',
+            maxFileSize:2000,  //文件大小 2m
+            maxFileCount: 5, //文件数量传送 5个
+
+        });
+        $('#file_upload').on('fileuploaded', function(event, data, previewId, index) {
+            var form = data.form, files = data.files, extra = data.extra,
+                    response = data.response, reader = data.reader;
+
+            console.log(response);
+            upload_files.push(response.uploaded_file_path);
+        });
+
+        //前端的内容上传   绑定change时间。根据你选择下载还是上传 隐藏相应的类
+        $("#task_type").on("change",function(){
+            //
+            if (this.value == 'file_send'){
+                $(".file-input").removeClass("hide");
+                $("#file-download-to-local").addClass("hide")
+            }else{
+                $(".file-input").addClass("hide");
+                $("#file-download-to-local").removeClass("hide")
+            }
+
+        });//end on change
+
+
+    });
+
+
+</script>
+
+
+{% endblock %}

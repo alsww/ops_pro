@@ -1,0 +1,25 @@
+{% extends 'hosts/dashboard.html' %}
+
+{% block content-panel %}
+
+{% include 'hosts/host_list_component.html' %}
+<div class="col-md-9">
+    <div class="panel panel-default panel-right">
+        <div class="panel-body">
+
+            {% include 'hosts/task_exec_component.html' %}
+            <div id="err-msgs"></div> <!--定义错误显示区域-->
+
+            <hr/>
+            <!--命令输出地方-->
+            <div id="result-box">
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block bottom-js %}
+{% include 'hosts/multi_task_js_component.html' %}
+{% endblock %}

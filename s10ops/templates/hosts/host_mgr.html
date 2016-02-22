@@ -1,0 +1,80 @@
+{% extends 'hosts/dashboard.html' %}
+
+{% block content-panel %}
+<div class="col-md-3">
+    主机组
+    <div class="panel panel-default"> <!--bootstrap的面板-->
+        <div class="panel-body">
+            <div id="host-group" class="list-group">
+                <a class="list-group-item" href="{% url 'host_mgr' %}">未分组主机 [ {{ request.user.bind_hosts.select_related.count }} ]</a>
+                {% for group in request.user.host_groups.select_related %}  <!--主机组循环-->
+                <!-- 下面中括号内是多少台机器  通过group 反查即可 因为有关联-->
+                <!-- 不用ajax来显示右侧主机列表内容    我们继续用模板，获取到url后 加问号 selected_gid-->
+                <a class="list-group-item"  href="{% url 'host_mgr' %}?selected_gid={{ group.id }}">{{ group.name }} [ {{ group.bindhosttouser_set.select_related.count }} ]</a>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+</div>
+<div class="col-md-9">
+    主机列表
+    <div class="panel panel-default">
+        <div class="panel-body">
+            <!--列表显示获取的主机内容-->
+            <table class="table table-bordered table-hover">
+                <tr>
+                    <th>#</th>
+                    <th>Hostname</th>
+                    <th>IP</th>
+                    <th>System type</th>
+                    <th>IDC</th>
+                    <th>Port</th>
+                    <th>Host user</th>
+                    <th>Status</th>
+                    <th>Login</th>
+
+                </tr>
+                {% for h in host_list %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>{{ h.host.hostname }}</td>
+                    <td>{{ h.host.ip_addr }}</td>
+                    <td>{{ h.host.system_type }}</td>
+                    <td>{{ h.host.idc }}</td>
+                    <td>{{ h.host.port }}</td>
+                    <td>{{ h.host_user.username }}</td>
+                    <td>{{ h.host.enabled }}</td>
+                    <td>Login</td>
+                </tr>
+
+                {% endfor %}
+            </table>
+
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block bottom-js %}
+<script type="text/javascript">
+    $(document).ready(function(){
+        var act = $('#host-group a[herf]')
+        console.log(act)
+        for (action in act){
+            if (action == "{% url 'host_mgr' %}" ){
+                $("#host-group a[href='"+ "{% url 'hosts' %}"  + "']").parent().addClass("active");   //三级继承的导航高亮显示   加好是拼接url
+                console.log(11111111111)
+            }
+            else{
+                $("#host-group a[href='"+ "{% url 'hosts' %}?selected_gid={{ group.id }}"  + "']").parent().addClass("active");   //三级继承的导航高亮显示   加好是拼接url
+                console.log('ssssss')
+            }
+        };//end for
+
+
+    });//end ready
+
+</script>
+
+{% endblock %}

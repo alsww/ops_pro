@@ -1,0 +1,36 @@
+<div class="col-md-3" >
+
+    <div class="panel panel-default panel-left" style="overflow: auto;">
+        主机组
+        <div class="panel-body">
+            <ul id="group-list" class="list-group">  <!--为了点击事件添加的id-->
+
+                <li class="list-group-item borderless">
+                    <span class="badge">{{ request.user.bind_hosts.select_related.count }}</span> <!--主机数量查询显示-->
+                    未分组主机
+                </li>
+                {% for group in  request.user.host_groups.select_related %} <!--主机显示-->
+
+                <li class="list-group-item borderless">
+                    <!--这个函数这里传的是点击谁谁就是this 下面函数的变量是ele 自己写的不能写this-->
+                    <input onclick="CheckAllToggle(this)" data="host-group" type="checkbox" value="{{ h.id }}">   <!--复选框 全总选-->
+                    <a  data='group' class="a-pointer">  <!--自定义属性 data 给上层的标签 。 -->
+                        {{ group.name }} <!--主机名显示-->
+                        <span class="badge">{{ group.bindhosttouser_set.select_related.count }}</span> <!--主机数量查询显示-->
+
+                    </a>
+                    <!--如下是具体主机名显示-->
+                    <ul class="list-group hide"> <!--自带隐藏hide类   我们在下面绑定一个事件-->
+                        {% for h in group.bindhosttouser_set.select_related %}
+                        <!--下面是实现的树状结构收缩显示  添加checkbox 显示选择框 -->      <!--这里的自定义属性是区分开单选还是组选全选--><!--value是告诉你在复选框选的什么 bindhosttouser的id-->
+                        <!--li class="list-group-item list-tree"><span>-- </span><input data="bind-host" type="checkbox" value="{{ h.id }}">{{ h.host.hostname }}</li-->
+                        <li class="list-group-item list-tree"><span>-- </span><input data="bind-host" type="checkbox" value="{{ h.id }}">{{ h.host.hostname }}({{ h.host.ip_addr }}@{{ h.host_user.username }})</li>
+                        {% endfor %}
+                    </ul>
+                </li>
+                {% endfor %}
+            </ul>
+
+        </div>
+    </div>
+</div>

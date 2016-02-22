@@ -1,0 +1,169 @@
+<script type="text/javascript">
+
+    $(document).ready(function(){
+        $("#group-list a[data='group']").click(function(){
+
+            $(this).nextAll().toggleClass("hide");
+
+        });//end #group-list li[href='group']"
+
+    }); //end doc ready
+    <!--函数的变量是ele 自己写的不能写this this写在这是全局的-->
+    function CheckAllToggle(ele){
+
+        if(ele.checked){//把它下面所有的主机都 全选
+            $(ele).next().next().children().children("input").prop("checked",true);  //一个next只能找一级  找到input 还得往下找层li  //prop 跟attr 区别。 attr 是属性值
+            //像checkbox，radio和select这样的元素，选中属性对应“checked”和“selected”，这些也属于固有属性，因此需要使用prop方法去操作才能获得正确的结果。 给个true就是选中 false是没有选中
+        }else{
+            $(ele).next().next().children().children("input").prop("checked",false);
+
+        }
+
+    };//end checkalltoggle
+    function SubmitTask(task_type){
+
+        FormVerification(task_type);
+        //批量命令时候
+        //if (task_type == 'multi_cmd'){ //如果参数是 批量命令，我就再执行个函数 处理命令的传给后台
+        //    FormVerification(task_type); //函数 处理命令传给后台
+        //    //前端上传文件部分 在上面的函数内做判断
+        //}
+
+
+    };//end submit
+    //如下是提交命令 处理函数  主要是 命令是空  选择的主机是否为空。 用前面的 自定义属性 data变量来确定主机是哪台
+    function FormVerification(task_type){
+
+        var err_list = [];  //定义的错误列表，
+        var data_list = {};// 定义的主机字典  要提交到后台的数据
+        var selected_host = VerifyHostSelection(); //调用 选择主机函数  全局变量了
+        data_list['selected_hosts'] = selected_host; //文件和命令都需要主机列表，所以需要是公共部分
+        data_list['task_type'] = task_type;  // 传文件的时候的全局变量 文件类型来反射找方法。
+
+        //文件和命令都需要主机列表，所以需要是公共部分
+        if (selected_host.length == 0){ //判断主机列表长度 为0 则什么也没选
+            err_list.push(['验证失败',"未选择任何主机!"])
+        }
+        console.log(task_type)
+        if (task_type == 'multi_cmd') {
+            //var selected_host = VerifyHostSelection(); //调用 选择主机函数  在批量创文件的的时候我们做成全局的了
+            //data_list['selected_hosts'] = selected_host; // 字典的key和value 选择的主机  在批量创文件的的时候我们做成全局的了
+            var cmd_text = $.trim($("textarea[name='cmd']").val());
+            // console.log('---cmd' + cmd_text)  //测试
+            data_list['cmd'] = cmd_text;  // 字典的key和value  选择的命令
+            //data_list['task_type'] = task_type;  // 第三个参数  字典的任务类型 是命令还是文件     在批量创文件的的时候我们做成全局的了
+
+            //if (selected_host.length == 0){ //判断主机列表长度 为0 则什么也没选   在批量创文件的的时候我们做成全局的了
+            //    err_list.push(['验证失败',"未选择任何主机!"])   在批量创文件的的时候我们做成全局的了
+            //}   在批量创文件的的时候我们做成全局的了
+            if (cmd_text.length == 0) {  //判断命令 长度
+                err_list.push(['验证失败', "未输入要执行的命令!"])
+            }
+        }
+        //前端上传文件部分
+        else if(task_type == 'multi_file_transfer'){
+            var remote_path_val = $.trim($('#remote_file_path').val()); //文件名去空格赋值
+            data_list['remote_path'] = remote_path_val //后面提交任务 如果是提交文件要将这个远程文件路径放到要提交的任务数据列表
+            if (remote_path_val.length == 0){
+                err_list.push(['验证失败',"未输入远程路径!"])
+            }
+
+            //确认上传还是下载  verify upload or download
+            var task_action = $('#task_type').val() //获取值并赋值
+            data_list['file_transfer_type'] = task_action
+            if (task_action == 'file_send'){
+                if (upload_files.length == 0){
+                    err_list.push(['验证失败',"未上传文件到中转机!"]) //注意从远程下载不需要验证此步
+                }
+
+                //将文件列表写入到 要提交的列表里面 在下面的data_List 跟远程路径。上面要放
+                data_list['upload_files'] = upload_files;
+            }
+        }
+
+
+        //如果错误列表长度 大于0
+        if (err_list.length>0){
+            $("#err-msgs").html(" ");  //每次大于0先清除。 放空
+            $.each(err_list,function(index,item){  //循环错误
+                var err_msg = "<p style='color:red;'>" + index + ". " + item[1] + "</p>";  //拼接错误显示 段落p标签
+                $("#err-msgs").append(err_msg); //添加错误信息到id的div里面
+            })
+
+        }else{
+            $("#err-msgs").html(" ");  //都正确的话将错误信息充
+            //提交任务  这里不包含文件列表
+            data_list["csrfmiddlewaretoken"] = $("input[name='csrfmiddlewaretoken']").val();  //跨站请求  提交到后台 将name 和value 放到字典，这样传字典数据的时候可以通过
+            $.post("{% url 'submit_task' %}", data_list, function(callback){   //字典按理说要转换成json格式   post url 字典数据   回调函数
+                console.log(callback);  //打印返回的数据 测试
+                console.log(22222)
+                //15天课
+                task_id_obj = JSON.parse(callback); //序列化 返回的数据
+
+
+                //由于造成了循环后，再重新提交id的话，上次的id也会继续重新刷新。所以我们每次submit新提交的的时候判断一下是否存在循环的定时器，如果该定时器变量已经定义那么我们就清空定时器。否则造成局部页面循环刷新不同id的结果。
+                if (typeof(GetTaskResultInterval) !== 'undefined' ){
+                    clearTimeout(GetTaskResultInterval) // 当执行新一批任务的提交id时候 清空已有定时器，避免造成循环刷新结果。
+                    RefreshGetTaskResult(task_id_obj.task_id)
+                }else{  //如果该定时器变量没有定义的话，就直接传id 避免多个任务id循环，造成局部页面循环刷新不同id的结果。
+                    RefreshGetTaskResult(task_id_obj.task_id); //该函数负责调用id处理数据   在这前端取后面的数据
+                }
+
+                console.log(2333333333)
+                //15天课
+            });//end post
+        }
+    };//end 验证
+    //确认主机选择
+    function VerifyHostSelection(){
+        var selected_hosts = [];  //定义空列表
+        var all_hosts =  $("input[data='bind-host']"); //所有全局下的input 下的data是bind-host  下面的each循环
+        //循环上面的all_hosts
+        $.each(all_hosts, function(index,ele){ //
+            if(ele.checked){ //如果是选中为true的话
+                selected_hosts.push($(ele).val());  //jquery添加到列表是push  将取出的vaule 即将选择的checkbox放到列表
+            }
+        });//end each
+        return selected_hosts;  //返回列表
+    };
+    //RefreshGetTaskResult(taks_id_obj.task_id); //该函数负责调用id处理数据  表单验证的内部调用  用于前端取后面的数据
+    function RefreshGetTaskResult(task_id){
+
+        GetTaskResult(task_id); // 真实的取数据  前端取后面的数据 显示
+
+        // 做的定时器 定时去后台刷新去数据库取数据  上面是刷新之前先执行一次
+        GetTaskResultInterval = setInterval(function(){
+            GetTaskResult(task_id);
+        },3000); //3秒
+        console.log(task_id)
+
+
+    }
+    function GetTaskResult(task_id){
+        console.log('jjjjjjjjjjj')
+        // 取数据用get  但是由于后端是 json序列化之后过得，所以我们用getjson就不用转换了 直接就转换好了
+        $.getJSON("{% url 'gettaskresult' %}",{task_id:task_id},function(callback){
+            console.log(4444)
+            console.log(callback);
+            console.log('iiiiiiiiii')
+            PrintOnPage(callback);  //调用 将数据库的输出结果字段显示到 页面前端  采用拼接
+        });//end getJSON
+    };//end  RefreshGetTaskResult
+    //将数据库的输出结果字段显示到 页面前端  采用拼接
+    function PrintOnPage(callback){
+        $("#result-box").html(" ");  //每次提交都先清空页面
+        console.log('ooooooooo')
+        //循环 如上的返回结果， 拼接打印
+        $.each(callback,function(index,item){
+            //  主机 ip  用户 日期 结果
+            // pre 按照数据库的格式输出
+
+            var row_html = "<p>" + item.bind_host__host__hostname + "(" + item.bind_host__host__ip_addr + ") ---->" + item.bind_host__host_user__username + " ------- " + item.date + " ------ " + item.result + "</p>" +
+                    "<pre>" + item.event_log + "</pre>";
+            //添加到页面。
+            $("#result-box").append(row_html);
+
+        });//end each
+    }
+
+</script>
